@@ -9,7 +9,6 @@ import (
 )
 
 var counter int64
-var version = "v0.1.1"
 
 func main() {
 	podName := os.Getenv("POD_NAME")
@@ -26,11 +25,6 @@ func main() {
 		id := atomic.AddInt64(&counter, 1)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"id":%d,"pod":"%s"}`, id, podName)
-	})
-
-	http.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"version":"%s","pod":"%s"}`, version, podName)
 	})
 
 	log.Printf("Starting notiflex-api on :8080 (pod=%s)", podName)
