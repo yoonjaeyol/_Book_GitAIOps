@@ -12,10 +12,10 @@
 | ch2 | 2.5 kind 클러스터 | ✅ | 2026-08-13 | kind v0.21.0, yjy-ubuntu20-test-3 |
 | ch2 | 2.6 빌드/배포 | ✅ | 2026-08-13 | Docker scratch, 2 Pod Running |
 | ch2 | 2.7 첫 커밋 | ✅ | 2026-08-13 | |
-| ch3 | 3.2 GitOps 도구 | ⬜ | | |
-| ch3 | 3.3 기능 추가 | ⬜ | | |
-| ch3 | 3.4 CI | ⬜ | | |
-| ch3 | 3.5 CI-CD 연결 | ⬜ | | |
+| ch3 | 3.2 GitOps 도구 | ✅ | 2026-08-15 | ArgoCD v3.5.1 (kind, NetworkPolicy 제거) |
+| ch3 | 3.3 기능 추가 | ✅ | 2026-08-15 | /version endpoint (v0.1.1), rolling update, revert 롤백 테스트 |
+| ch3 | 3.4 CI | ✅ | 2026-08-15 | GitHub Actions, Docker Hub push (firewood2002) |
+| ch3 | 3.5 CI-CD 연결 | ✅ | 2026-08-15 | push → build → tag update → ArgoCD auto-sync |
 | ch4 | 4.2 메트릭 모니터링 | ⬜ | | |
 | ch4 | 4.3 로그 수집 | ⬜ | | |
 | ch4 | 4.4 알림 | ⬜ | | |
@@ -42,15 +42,19 @@
 |------|------|-----------|----------|
 | K8s 플랫폼 | kind | GKE | 내부 인프라, 비용 제로, 빠른 실험 |
 | 에이전트 | Hermes | Claude Code, Codex | 크로스세션 메모리, subagent 병렬 |
+| GitOps | ArgoCD | Flux, Jenkins X, Spinnaker | Web UI로 배포 상태 시각화, selfHeal, CNCF Graduated (ch3) |
+| CI | GitHub Actions | Cloud Build, GitLab CI, Jenkins | GitHub 네이티브, YAML 선언적, 별도 서버 불필요 (ch3) |
+| 이미지 registry | Docker Hub | GCP Artifact Registry, ghcr.io | kind에서 anonymous pull 가능 확인 (ch3) |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
-| Go | 1.25 | |
-| Notiflex 이미지 | v0.1.0 | ch2.6: 초기 빌드 |
+| Go | 1.25 | golang:1.25-alpine |
+| Notiflex 이미지 | firewood2002/notiflex-api:sha-cc3f896 | ch2.6 v0.1.0 → ch3.3 v0.1.1 → ch3.4 CI SHA 태그 |
 | kind | v0.21.0 | |
 | Kubernetes | v1.29.1 | kindest/node:v1.29.1 |
+| ArgoCD | v3.5.1 | ch3.2 설치 (stable manifest, NetworkPolicy 제거) |
 
 ## 현재 리소스
 
