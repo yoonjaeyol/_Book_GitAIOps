@@ -192,6 +192,14 @@ kubectl --context gke-sysnet4admin_book_gitaiops get pods -n notiflex
 kubectl get pods -n notiflex
 ```
 
+### 행동 규칙 (임시 — 요청 시 되돌림)
+
+1. **kubectl delete 금지**: 이 클러스터에서 `kubectl delete`를 직접 실행하지 않는다. 리소스 삭제는 Git에서 매니페스트를 제거한 뒤 ArgoCD가 `prune`으로 처리하도록 한다.
+2. **kubectl apply 금지**: `kubectl apply`를 직접 실행하지 않는다. 모든 배포는 `k8s/` 디렉터리의 매니페스트를 Git에 push하여 ArgoCD가 sync하도록 한다.
+3. **변경 전 diff 필수**: 파일이나 매니페스트를 수정하기 전, 항상 변경 내용(diff)을 먼저 보여준다.
+
+> 예외: 위 규칙이 적용되기 전에 이미 존재하는 리소스나, ArgoCD 관리 대상이 아닌 리소스(예: argocd 네임스페이스 자체, 임시 디버깅용 리소스)에 한해 독자의 명시적 확인을 얻어 kubectl로 처리할 수 있다.
+
 ### 공통 실행 규칙
 
 1. 독자가 입력하면, mode에 따라 가드레일 참조 여부를 결정한다.
