@@ -18,7 +18,7 @@
 | ch3 | 3.5 CI-CD 연결 | ✅ | 2026-08-15 | push → build → tag update → ArgoCD auto-sync |
 | ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-08-17 | kube-prometheus-stack 88.3.0, Notiflex 대시보드 4패널 |
 | ch4 | 4.3 로그 수집 | ✅ | 2026-08-17 | Loki 6.55.0 SingleBinary + Fluent Bit 2.6.0, {namespace="notiflex"} 조회 확인 |
-| ch4 | 4.4 알림 | ⬜ | | |
+| ch4 | 4.4 알림 | ✅ | 2026-08-17 | PrometheusRule PodRestartTooMany, liveness 실패로 firing→Alertmanager active 확인 |
 | ch5 | 5.2 트래픽 관리 | ⬜ | | |
 | ch5 | 5.3 무중단 배포 | ⬜ | | |
 | ch6 | 6.1 캐시 | ⬜ | | |
@@ -47,6 +47,7 @@
 | 이미지 registry | Docker Hub | GCP Artifact Registry, ghcr.io | kind에서 anonymous pull 가능 확인 (ch3) |
 | 메트릭 모니터링 | kube-prometheus-stack | Datadog, New Relic | 무료, K8s 네이티브, Grafana 통합 (ch4.2) |
 | 로깅 | Loki + Fluent Bit | ELK (Elasticsearch), Datadog Logs | 경량, 라벨 기반 인덱싱, Grafana 네이티브 통합 (ch4.3) |
+| 알림 | PrometheusRule + Alertmanager | Grafana Alert, Datadog Monitor | K8s 네이티브 (Prometheus Operator), GitOps로 룰 버전 관리 (ch4.4) |
 
 ## 현재 버전
 
@@ -60,6 +61,7 @@
 | kube-prometheus-stack | 88.3.0 (Prometheus 2.x, Grafana) | ch4.2 설치 (monitoring ns, 100m/256Mi 경량) |
 | Loki | 3.6.7 (chart 6.55.0, SingleBinary) | ch4.3 설치 (filesystem, RF=1, auth off) |
 | Fluent Bit | 2.1.0 (chart 2.6.0) | ch4.3 설치 (DaemonSet, Loki push, namespace/pod/container 라벨) |
+| Alertmanager | (kube-prometheus-stack) | ch4.4 — PrometheusRule PodRestartTooMany (k8s/monitoring/, release: kube-prometheus) |
 
 ## 현재 리소스
 
@@ -79,3 +81,5 @@
 | ch4.3 | 401 Unauthorized (3.x 기본 auth) | loki.auth_enabled: false |
 | ch4.3 | too many unhealthy instances in the ring | commonConfig.replication_factor 3→1 (단일 ingester) |
 | ch4.3 | notiflex 로그가 Loki에 없음 | tail은 파일 끝부터 — 앱 기동(19h 전) 이전 로그는 수집 안 됨. Pod 재시동으로 신규 로그 생성 후 수집 확인 |
+| ch4.4 | kubectl delete pod은 알람 안 발생 | restarts_total은 동일 Pod의 컨테이너 재시작만 센다 — Pod 삭제는 새 Pod(0)이라 증가 0. liveness probe를 실패(__fail__)로 바꿔 crash loop로 실제 재시작 5회 유도 |
+| ch4.4 | ArgoCD selfHeal이 테스트를 방해 | ArgoCD v3.5.1 CRD에 spec.suspend가 없음(unknown field). syncPolicy.automated.selfHeal: false로 임시 비활성화 후 테스트, 끝나고 true로 복원 |
