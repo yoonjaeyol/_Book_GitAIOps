@@ -1,0 +1,73 @@
+# Notiflex 대시보드 — Grafana dashboard sidecar(grafana-sc-dashboard)이
+# monitoring namespace의 grafana_dashboard: "1" 라벨 ConfigMap을 자동 로드
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notiflex-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  notiflex.json: |
+    {
+      "title": "Notiflex",
+      "uid": "notiflex",
+      "timezone": "browser",
+      "editable": true,
+      "refresh": "10s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "type": "graph",
+          "title": "Pod CPU 사용량 (m)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"notiflex\",container!=\"\",container!=\"POD\"}[5m])) * 1000",
+              "legendFormat": "cpu(m)"
+            }
+          ],
+          "yaxes": [ { "format": "short" }, { "format": "short" } ],
+          "xaxis": { "mode": "time" }
+        },
+        {
+          "id": 2,
+          "type": "graph",
+          "title": "Pod 메모리 사용량",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"notiflex\",container!=\"\",container!=\"POD\"})",
+              "legendFormat": "memory"
+            }
+          ],
+          "yaxes": [ { "format": "bytes" }, { "format": "short" } ],
+          "xaxis": { "mode": "time" }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "Pod 재시작 횟수",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"notiflex\"})",
+              "legendFormat": "restarts"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "Running Pod 수",
+          "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+          "targets": [
+            {
+              "expr": "count(kube_pod_status_phase{namespace=\"notiflex\",phase=\"Running\"})",
+              "legendFormat": "pods"
+            }
+          ]
+        }
+      ]
+    }

@@ -1,0 +1,27 @@
+# kube-prometheus-stack values — kind e2-small(4C 16G) 노드 튜닝
+# (ch6에서 CSI DaemonSet 240m 추가 대비, 이후 5m까지 축소 예정)
+prometheus:
+  prometheusSpec:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    retention: 2h
+    retentionSize: 2GiB
+    # kind 클러스터: kubeconfig 사용
+    volumes:
+      - name: empty
+        emptyDir: {}
+
+grafana:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi

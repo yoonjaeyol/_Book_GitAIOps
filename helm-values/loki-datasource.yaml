@@ -1,0 +1,19 @@
+# Loki Grafana 데이터소스 — grafana-sc-datasources sidecar가
+# monitoring ns의 grafana_datasource: "1" 라벨 CM을 자동 로드
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-datasource
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: "Loki"
+      type: loki
+      uid: loki
+      url: http://loki.monitoring:3100
+      access: proxy
+      isDefault: false

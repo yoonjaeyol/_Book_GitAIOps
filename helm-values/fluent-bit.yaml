@@ -1,0 +1,28 @@
+# Fluent Bit values — DaemonSet, Loki output
+# chart: grafana/fluent-bit 2.6.0
+loki:
+  # Loki SingleBinary 서비스 (release=loki, monitoring ns, port 3100)
+  serviceName: "loki"
+  servicePort: 3100
+  servicePath: /api/prom/push
+  serviceScheme: http
+
+config:
+  # {namespace="notiflex"} 같은 LogQL 라벨 필터용 — namespace/pod/container 라벨 매핑
+  labels: '{job="fluent-bit"}'
+  labelMap:
+    kubernetes:
+      namespace_name: namespace
+      labels:
+        app: app
+      host: node
+      container_name: container
+      pod_name: pod
+  loglevel: warn
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 128Mi

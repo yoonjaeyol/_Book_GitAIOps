@@ -16,8 +16,8 @@
 | ch3 | 3.3 기능 추가 | ✅ | 2026-08-15 | /version endpoint (v0.1.1), rolling update, revert 롤백 테스트 |
 | ch3 | 3.4 CI | ✅ | 2026-08-15 | GitHub Actions, Docker Hub push (firewood2002) |
 | ch3 | 3.5 CI-CD 연결 | ✅ | 2026-08-15 | push → build → tag update → ArgoCD auto-sync |
-| ch4 | 4.2 메트릭 모니터링 | ⬜ | | |
-| ch4 | 4.3 로그 수집 | ⬜ | | |
+| ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-08-17 | kube-prometheus-stack 88.3.0, Notiflex 대시보드 4패널 |
+| ch4 | 4.3 로그 수집 | ✅ | 2026-08-17 | Loki 6.55.0 SingleBinary + Fluent Bit 2.6.0, {namespace="notiflex"} 조회 확인 |
 | ch4 | 4.4 알림 | ⬜ | | |
 | ch5 | 5.2 트래픽 관리 | ⬜ | | |
 | ch5 | 5.3 무중단 배포 | ⬜ | | |
@@ -45,6 +45,8 @@
 | GitOps | ArgoCD | Flux, Jenkins X, Spinnaker | Web UI로 배포 상태 시각화, selfHeal, CNCF Graduated (ch3) |
 | CI | GitHub Actions | Cloud Build, GitLab CI, Jenkins | GitHub 네이티브, YAML 선언적, 별도 서버 불필요 (ch3) |
 | 이미지 registry | Docker Hub | GCP Artifact Registry, ghcr.io | kind에서 anonymous pull 가능 확인 (ch3) |
+| 메트릭 모니터링 | kube-prometheus-stack | Datadog, New Relic | 무료, K8s 네이티브, Grafana 통합 (ch4.2) |
+| 로깅 | Loki + Fluent Bit | ELK (Elasticsearch), Datadog Logs | 경량, 라벨 기반 인덱싱, Grafana 네이티브 통합 (ch4.3) |
 
 ## 현재 버전
 
@@ -55,6 +57,9 @@
 | kind | v0.21.0 | |
 | Kubernetes | v1.29.1 | kindest/node:v1.29.1 |
 | ArgoCD | v3.5.1 | ch3.2 설치 (stable manifest, NetworkPolicy 제거) |
+| kube-prometheus-stack | 88.3.0 (Prometheus 2.x, Grafana) | ch4.2 설치 (monitoring ns, 100m/256Mi 경량) |
+| Loki | 3.6.7 (chart 6.55.0, SingleBinary) | ch4.3 설치 (filesystem, RF=1, auth off) |
+| Fluent Bit | 2.1.0 (chart 2.6.0) | ch4.3 설치 (DaemonSet, Loki push, namespace/pod/container 라벨) |
 
 ## 현재 리소스
 
@@ -68,3 +73,9 @@
 |------|------|------|
 | ch2.5 | kind 바이너리 다운로드 403/404 | GitHub rate limit 우회 (Accept header + v0.21.0), 로컬→scp 전송 |
 | ch2.5 | kubectl --short flag unknown | v1.29.1은 --short 미지원, 일반 버전 사용 |
+| ch4.2 | retentionSize 2Gi 오류 | unit 없는 "2Gi" 불가, "2GiB"로 |
+| ch4.3 | loki chart 7.x SimpleScalable 기본값 | 6.55.0(마지막 SingleBinary) 고정, read/write/backend replicas 0, test.enabled false |
+| ch4.3 | mkdir /var/loki: read-only file system | persistence off 시 쓰기 불가 → persistence 1Gi (kind standard/local-path) |
+| ch4.3 | 401 Unauthorized (3.x 기본 auth) | loki.auth_enabled: false |
+| ch4.3 | too many unhealthy instances in the ring | commonConfig.replication_factor 3→1 (단일 ingester) |
+| ch4.3 | notiflex 로그가 Loki에 없음 | tail은 파일 끝부터 — 앱 기동(19h 전) 이전 로그는 수집 안 됨. Pod 재시동으로 신규 로그 생성 후 수집 확인 |

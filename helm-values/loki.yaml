@@ -1,0 +1,57 @@
+# Loki values — SingleBinary 모드, filesystem 스토리지 (kind/학습 환경)
+# chart: grafana/loki 6.55.0 (마지막 SingleBinary 지원 버전)
+deploymentMode: SingleBinary
+
+# SimpleScalable 기본값(replicas 1)이 SingleBinary와 충돌 → 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+# SingleBinary에 불필요한 부가 컴포넌트 → off (경량화)
+gateway:
+  enabled: false
+lokiCanary:
+  enabled: false
+memcached:
+  enabled: false
+resultsCache:
+  enabled: false
+chunksCache:
+  enabled: false
+ruler:
+  enabled: false
+test:
+  enabled: false
+
+loki:
+  # multi-tenant 인증 끔 (단일 테넌트 학습 환경, 3.x 기본 true → 401)
+  auth_enabled: false
+  # schema_config 자동 생성 — 없으면 "You must provide a schema_config" CrashLoop
+  useTestSchema: true
+  # SingleBinary(ingester 1개) — RF=3이면 quorum=2 > healthy 1 →
+  # "too many unhealthy instances in the ring" 500. 1로 고정
+  commonConfig:
+    replication_factor: 1
+  # object storage 없이 로컬 파일시스템 사용
+  storage:
+    type: filesystem
+    # filesystem: (기본값 유지)
+    #   chunks_directory: /var/loki/chunks
+    #   rules_directory: /var/loki/rules
+
+singleBinary:
+  replicas: 1
+  # kind 학습 환경: 경량 리소스 (책 기준 requests 10m/128Mi)
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+  # /var/loki 쓰기 가능 (persistence off이면 read-only rootFS → crash)
+  # kind: local-path(standard) 스토리지 클래스, 학습용 1Gi
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: standard
