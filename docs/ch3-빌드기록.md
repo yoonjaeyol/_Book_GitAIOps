@@ -250,3 +250,91 @@ git push (app/**)
 | CI `Username and password required` | Docker Hub PAT 인증 실패/Secret 값 오류 | PAT 재확인, Secret에 실제 값 등록 |
 | Actions git push 403 | Workflow permissions read-only | `Read and write permissions` 설정 + `contents: write` |
 | ArgoCD가 새 커밋을 지연 감지 | polling interval 3분 + manifest cache | repo secret 재생성 + 전체 restart (강제 refresh) |
+
+## 8. ch3 추가 체험: CLAUDE.md 행동 규칙 + 삭제/복원 (2026-08-15 이후)
+
+### 8.1 CLAUDE.md에 임시 행동 규칙 추가 (a4fdc50)
+
+`### kubectl 안전 규칙` 바로 아래에 별도 섹션으로 추가:
+
+```markdown
+### 행동 규칙 (임시 — 요청 시 되돌림)
+
+1. **kubectl delete 금지**: 리소스 삭제는 Git에서 매니페스트 제거 → ArgoCD prune
+2. **kubectl apply 금지**: 모든 배포는 k8s/ 매니페스트 git push → ArgoCD sync
+3. **변경 전 diff 필수**: 파일/매니페스트 수정 전 항상 diff 표시
+
+> 예외: ArgoCD 관리 대상이 아닌 리소스(임시 디버깅 리소스 등)는 독자의
+>  명시적 확인 후 kubectl로 처리 가능
+```
+
+- 되돌리기용: 단독 섹션 분리 + 커밋 1개(a4fdc50)에 묶음 → `git revert a4fdc50` 또는 섹션 삭제
+
+### 8.2 "notiflex 네임스페이스와 notiflex-api deployment를 지워줘" 처리 과정
+
+#### (1) Git 경로 삭제 시도 (210b999) — 함정 발견
+
+`k8s/smb/` 3개 파일(namespace, deployment, service)을 `git rm`하고 push.
+
+**함정: Git은 빈 디렉터리를 추적하지 않는다.**
+- 3개 파일이 전부 사라지자 `k8s/smb` 디렉터리 자체가 Git 트리에 소멸
+- ArgoCD: `ComparisonError: k8s/smb: app path does not exist`
+- repo-server가 이 **에러 자체를 캐시** → 이후에도 지속 (전체 restart로만 해제)
+
+#### (2) 해결: 경로 유지용 .gitkeep (f0cd00f)
+
+- `k8s/smb/.gitkeep`(빈 파일) 추가 → 경로가 Git에 유지
+- ArgoCD 전체 restart(deployment + statefulset)로 에러 캐시 해제
+- 결과: deployment/service/pod **prune 완료** (Synced/Healthy)
+
+#### (3) namespace가 안 지워지는 함정
+
+- `notiflex` namespace가 여전히 Active
+- 원인: namespace는 **매니페스트가 아니라 `CreateNamespace=true`로 생성**된 객체
+  → ArgoCD prune은 매니페스트로 적용된 "관리 대상 객체"만 삭제
+  → 매니페스트가 사라져도 namespace는 prune 대상에 포함되지 않음
+- 해결: Application의 syncOptions에서 `CreateNamespace=true` 제거
+  ```bash
+  kubectl patch application notiflex-smb -n argocd --type json \
+    -p='[{"op":"remove","path":"/spec/syncPolicy/syncOptions"}]'
+  ```
+  (patch 후 `allowEmpty: true` 자동 반영 — 빈 매니페스트 sync 허용)
+- 빈 namespace 삭제는 ArgoCD 관리 대상이 아니므로 CLAUDE.md 예외 조항(독자 확인) 필요
+
+### 8.3 복원 (fa3b27f) — Git으로만 전체 복원
+
+독자 요청("삭제했던 내용 복원해줘")에 따라 **kubectl apply 없이 Git 경로로 복원**:
+
+```bash
+# a4fdc50(삭제 전 시점)의 매니페스트를 복원
+git show a4fdc50:k8s/smb/namespace.yaml  > k8s/smb/namespace.yaml
+git show a4fdc50:k8s/smb/deployment.yaml > k8s/smb/deployment.yaml
+git show a4fdc50:k8s/smb/service.yaml    > k8s/smb/service.yaml
+git rm k8s/smb/.gitkeep && git add k8s/smb/
+git commit -m "chore: k8s/smb 매니페스트 복원" && git push
+```
+
+- ArgoCD polling(~3분) 후 자동 sync:
+  - namespace 재생성 (CreateNamespace=true 복원 패치와 함께)
+  - Deployment 2/2, Service, Pod 재생성 (82초)
+  - Pod image: `firewood2002/notiflex-api:sha-cc3f896`
+- API 검증: `/health` ok, `/version` → v0.1.3
+
+### 8.4 핵심 교훈
+
+| # | 교훈 |
+|---|---|
+| 1 | `git rm`으로 ArgoCD path 전체를 없애면 "app path does not exist" — `.gitkeep`으로 경로 유지 |
+| 2 | repo-server는 **에러도 캐시**한다 — manifest cache miss/에러 persist 시 전체 rollout restart |
+| 3 | `CreateNamespace=true`로 만든 namespace는 **prune되지 않는다** — namespace까지 지울 건 syncOptions 제거 또는 수동 delete |
+| 4 | CLAUDE.md 행동 규칙 + 예외 조항: ArgoCD 관리 대상이 아닌 리소스는 확인 후 kubectl |
+| 5 | 복원도 Git: `git show <시점>:<파일>` → push → ArgoCD가 자동 복구. kubectl 불필요 |
+
+### 8.5 관련 커밋
+
+| 커밋 | 내용 |
+|---|---|
+| a4fdc50 | CLAUDE.md 임시 행동 규칙 추가 |
+| 210b999 | k8s/smb 3파일 삭제 (→ path 소멸 함정) |
+| f0cd00f | .gitkeep 추가 (경로 유지) |
+| fa3b27f | 매니페스트 복원 (a4fdc50 시점) |
