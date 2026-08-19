@@ -1,0 +1,23 @@
+# MetalLB 구성 (chart 0.16.x — ConfigMap 대신 CR 사용)
+# pool: kind docker bridge 네트워크(172.18.0.0/16) 대역 — kind NAT 구조에서
+# L2 ARP는 노드 eth0(172.18.0.2)로 나가고, host 브리지가 LAN으로 전달
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: notiflex
+  namespace: metallb
+spec:
+  addresses:
+  - 172.18.0.100-172.18.0.140
+  autoAssign: false   # 지정 IP 할당 (재현성)
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: notiflex
+  namespace: metallb
+spec:
+  interfaces:
+  - eth0   # kind 노드의 실 인터페이스
+  ipAddressPools:
+  - notiflex

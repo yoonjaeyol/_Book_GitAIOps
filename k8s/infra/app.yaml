@@ -1,0 +1,22 @@
+# ArgoCD 앱: k8s/infra (Gateway API CRD + MetalLB + Traefik)
+# notiflex-smb(k8s/smb)와 분리 — 인프라/앱 관심사 분리
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: notiflex-infra
+  namespace: argocd
+spec:
+  destination:
+    cluster: in-cluster
+    namespace: metallb   # namespaced 리소스 fallback (manifest에 ns 명시된 것은 그대로)
+  source:
+    repoURL: https://github.com/yoonjaeyol/_Book_GitAIOps.git
+    targetRevision: main
+    path: k8s/infra
+  syncPolicy:
+    automated:
+      allowEmpty: true
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
