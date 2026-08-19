@@ -7,7 +7,7 @@ metadata:
   namespace: argocd
 spec:
   destination:
-    cluster: in-cluster
+    server: https://kubernetes.default.svc
     namespace: metallb   # namespaced 리소스 fallback (manifest에 ns 명시된 것은 그대로)
   source:
     repoURL: https://github.com/yoonjaeyol/_Book_GitAIOps.git
