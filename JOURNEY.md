@@ -58,7 +58,7 @@
 | kind | v0.21.0 | |
 | Kubernetes | v1.29.1 | kindest/node:v1.29.1 |
 | ArgoCD | v3.5.1 | ch3.2 설치 (stable manifest, NetworkPolicy 제거) |
-| kube-prometheus-stack | 88.3.0 (Prometheus 2.x, Grafana) | ch4.2 설치 (monitoring ns, 100m/256Mi 경량) |
+| kube-prometheus-stack | 88.3.0 (Prometheus 3.13.2, Grafana 13.1.3) | ch4.2 설치 (monitoring ns, 100m/256Mi 경량) |
 | Loki | 3.6.7 (chart 6.55.0, SingleBinary) | ch4.3 설치 (filesystem, RF=1, auth off) |
 | Fluent Bit | 2.1.0 (chart 2.6.0) | ch4.3 설치 (DaemonSet, Loki push, namespace/pod/container 라벨) |
 | Alertmanager | (kube-prometheus-stack) | ch4.4 — PrometheusRule PodRestartTooMany (k8s/monitoring/, release: kube-prometheus) |
