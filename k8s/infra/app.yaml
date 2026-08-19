@@ -6,6 +6,7 @@ metadata:
   name: notiflex-infra
   namespace: argocd
 spec:
+  project: default
   destination:
     server: https://kubernetes.default.svc
     namespace: metallb   # namespaced 리소스 fallback (manifest에 ns 명시된 것은 그대로)
