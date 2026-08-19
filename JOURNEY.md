@@ -83,3 +83,4 @@
 | ch4.3 | notiflex 로그가 Loki에 없음 | tail은 파일 끝부터 — 앱 기동(19h 전) 이전 로그는 수집 안 됨. Pod 재시동으로 신규 로그 생성 후 수집 확인 |
 | ch4.4 | kubectl delete pod은 알람 안 발생 | restarts_total은 동일 Pod의 컨테이너 재시작만 센다 — Pod 삭제는 새 Pod(0)이라 증가 0. liveness probe를 실패(__fail__)로 바꿔 crash loop로 실제 재시작 5회 유도 |
 | ch4.4 | ArgoCD selfHeal이 테스트를 방해 | ArgoCD v3.5.1 CRD에 spec.suspend가 없음(unknown field). syncPolicy.automated.selfHeal: false로 임시 비활성화 후 테스트, 끝나고 true로 복원 |
+| ch4.4 | 재현 시 selfHeal:false만으론 부족 | automated sync(주기적)이 kubectl 패치(liveness `__fail__`)를 계속 revert. **신뢰적 재현은 application controller(StatefulSet `argocd-application-controller`)를 replicas=0로 scale-down해 sync를 완전히 정지**한 뒤 crashloop 유도, 종료 후 replicas=1 복원. Prometheus `/api/v1/alerts` firing + Alertmanager `/api/v2/alerts` active 2건 확인 (2026-08-19) |
