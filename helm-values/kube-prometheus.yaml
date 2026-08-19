@@ -1,4 +1,4 @@
-# kube-prometheus-stack values — kind e2-small(4C 16G) 노드 튜닝
+# kube-prometheus-stack values — 4C 15G 단일 노드 튜닝 (kind e2-small → k3s v1.34)
 # (ch6에서 CSI DaemonSet 240m 추가 대비, 이후 5m까지 축소 예정)
 prometheus:
   prometheusSpec:

@@ -50,8 +50,8 @@ singleBinary:
       cpu: 10m
       memory: 128Mi
   # /var/loki 쓰기 가능 (persistence off이면 read-only rootFS → crash)
-  # kind: local-path(standard) 스토리지 클래스, 학습용 1Gi
+  # kind: standard(=local-path) / k3s: local-path 스토리지 클래스, 학습용 1Gi
   persistence:
     enabled: true
     size: 1Gi
-    storageClass: standard
+    storageClass: local-path
