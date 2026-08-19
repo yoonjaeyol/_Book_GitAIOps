@@ -1,0 +1,10 @@
+# 인프라 ns — ArgoCD CreateNamespace=true는 대상 ns만 자동 생성하므로 명시
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
