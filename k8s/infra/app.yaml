@@ -21,3 +21,8 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+    # Gateway API v1.6.x의 httproutes CRD(~474KB)는 클라이언트사이드 apply의
+    # last-applied-configuration 256KB 한도를 초과 → "metadata.annotations: Too long".
+    # ServerSideApply는 last-applied를 쓰지 않아 이 문제를 우회 (Gateway API 공식 권장:
+    # `kubectl apply --server-side --force-conflicts -f gateway-api-install.yaml`).
+    - ServerSideApply=true
