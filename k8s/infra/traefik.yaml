@@ -164,6 +164,8 @@ metadata:
   annotations:
 spec:
   type: LoadBalancer
+  # MetalLB pool(notiflex)이 autoAssign: false라 svc에 IP를 명시해야 배정됨 (재현성: 항상 10.10.20.100)
+  loadBalancerIP: 10.10.20.100
   selector:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
@@ -219,8 +221,8 @@ spec:
       - args:
         - --entryPoints.metrics.address=:9100/tcp
         - --entryPoints.traefik.address=:8080/tcp
-        - --entryPoints.web.address=:8000/tcp
-        - --entryPoints.websecure.address=:8443/tcp
+        - --entryPoints.web.address=:80/tcp
+        - --entryPoints.websecure.address=:443/tcp
         - --api.dashboard=true
         - --ping=true
         - --metrics.prometheus=true
@@ -267,10 +269,10 @@ spec:
         - containerPort: 8080
           name: traefik
           protocol: TCP
-        - containerPort: 8000
+        - containerPort: 80
           name: web
           protocol: TCP
-        - containerPort: 8443
+        - containerPort: 443
           name: websecure
           protocol: TCP
         readinessProbe:
@@ -286,7 +288,10 @@ spec:
         resources: null
         securityContext:
           allowPrivilegeEscalation: false
+          # non-root(uid 65532)가 80/443 바인딩하려면 NET_BIND_SERVICE 필요
           capabilities:
+            add:
+            - NET_BIND_SERVICE
             drop:
             - ALL
           readOnlyRootFilesystem: true

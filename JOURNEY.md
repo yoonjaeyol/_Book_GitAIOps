@@ -58,8 +58,8 @@
 | k3s | v1.34.10+k3s1 | 2026-08-19 kind(v0.21.0) → k3s 전환 (내장 containerd 2.2.5) |
 | Kubernetes | v1.34.10 | k3s v1.34 라인 (flannel 10.42.0.0/16) |
 | MetalLB | 0.16.1 (frr-k8s 0.0.25) | k8s/infra (ch5 대비), pool 10.10.20.100-140, L2 br0 |
-| Traefik | v3.7.10 | GatewayController (k8s/infra) |
-| Gateway API | v1.2.1 | CRD (k8s/infra) |
+| Traefik | v3.7.10 | GatewayController (k8s/infra), web=80/websecure=443 (NET_BIND_SERVICE) |
+| Gateway API | v1.6.1 (experimental) | CRD (k8s/infra) — v1.2.1(standard)에서 v1.6.1로 승격: Traefik 3.7이 TLSRoute/BackendTLSPolicy를 v1으로 watch |
 | ArgoCD | v3.5.1 | ch3.2 설치 (stable manifest, NetworkPolicy 제거) |
 | kube-prometheus-stack | 88.3.0 (Prometheus 3.13.2, Grafana 13.1.3) | ch4.2 설치 (monitoring ns, 100m/256Mi 경량) |
 | Loki | 3.6.7 (chart 6.55.0, SingleBinary) | ch4.3 설치 (filesystem, RF=1, auth off) |
@@ -92,3 +92,8 @@
 | ch2.5 (k3s) | k3s 내장 containerd CRI 플러그인 "too many open files" (fsnotify watcher) | inotify 한계는 **uid당** (`max_user_instances=128`) — kind control-plane(=docker bridge)의 k8s 스택(모두 uid 0)이 소진. kind 삭제 후 inotify 137→21로 해소, CRI 정상 |
 | ch2.5 (k3s) | kind→k3s 인프라 매니페스트 불일치 | L2Advertisement interfaces `eth0`(kind docker bridge)→`br0`, MetalLB pool 172.18.0.x→10.10.20.100-140 (LAN 공중 대역), loki storageClass standard→local-path |
 | ch4 (k3s) | Kube*Down 알림이 항상 pending/firing | k3s는 control-plane이 호스트 단일 프로세스라 Prometheus 타겟 미노출 — 차트 기본 룰의 특이점, 유해하지 않음 (kind에서도 존재) |
+| ch5.2 (k3s) | Gateway 11시간째 Programmed=Unknown, "Waiting for controller" | **Gateway API 버전 불일치**: v1.2.1(standard)은 TLSRoute/BackendTLSPolicy를 v1alpha2/v1alpha3로 서빙하는데 Traefik 3.7은 v1으로 watch → reflector cache sync 미완료 → gateway provider reconcile 불발. v1.6.1(experimental, v1 서빙)으로 승격 후 해결 |
+| ch5.2 (k3s) | traefik LB EXTERNAL-IP `<pending>` (MetalLB pool autoAssign:false) | pool이 autoAssign:false라 svc에 IP 명시 필요 — traefik svc에 `loadBalancerIP: 10.10.20.100` 추가 (재현성 유지) |
+| ch5.2 (k3s) | k3s 내장 svclb가 MetalLB와 LB IP를 경쟁(flapping) | k3s server에 `--disable service-loadbalancer` 추가 + 재기동, 잔존 svclb pod/DaemonSet 정리 |
+| ch5.2 (k3s) | Gateway listener "no matching entryPoint for port 80" | traefik web entrypoint가 :8000(매니페스트)인데 Gateway가 port 80 — web=80/websecure=443로 통일, non-root가 80/443 바인딩에 `NET_BIND_SERVICE` 추가 |
+| ch5.2 (k3s) | VIP(10.10.20.100) 외부 flap/타임아웃, /32가 br0에 안 걸림 | **MetalLB L2 speaker가 NET_RAW만 있고 NET_ADMIN 없음** — VIP를 bridge에 secondary로 올리는 netlink 작업 거부. speaker에 NET_ADMIN 추가. 추가: bridge(br0) 환경 특성상 /32가 간헐적으로만 걸림, 외부 안정 접근은 NodePort(32639)로. 노드 `rp_filter` 2→0(MetalLB L2 필요, /etc/sysctl.d/90-metallb-l2.conf) |

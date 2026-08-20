@@ -3088,12 +3088,16 @@ spec:
           failureThreshold: 3
         securityContext:
           allowPrivilegeEscalation: false
+          # L2 mode: VIP를 bridge(노드 브릿지)에 secondary로 올려 gratuitous ARP를
+          # 송신하려면 NET_ADMIN(netlink) + NET_RAW(raw socket)이 함께 필요하다.
+          # NET_RAW만 있으면 ARP는 나가도 IP가 bridge에 안 걸려 외부 접근이 flap.
           readOnlyRootFilesystem: true
           capabilities:
             drop:
             - ALL
             add:
             - NET_RAW
+            - NET_ADMIN
         volumeMounts:
           - name: reloader
             mountPath: /etc/frr_reloader
