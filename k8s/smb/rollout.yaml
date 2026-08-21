@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
       - name: notiflex-api
-        image: firewood2002/notiflex-api:sha-cc3f896
+        image: firewood2002/notiflex-api:sha-8344bb2
         ports:
         - containerPort: 8080
         env:
