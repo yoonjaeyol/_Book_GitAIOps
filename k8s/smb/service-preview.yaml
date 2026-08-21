@@ -1,0 +1,18 @@
+# ch5.3 Blue/Green: preview(새 버전 검증용) 서비스
+# - Rollout 컨트롤러가 selector에 rollouts-pod-template-hash를 주입해
+#   항상 최신 ReplicaSet을 가리킨다
+# - activeService(notiflex-api)는 Gateway/HTTPRoute가 사용, 이 서비스는
+#   직접 트래픽을 받지 않고 사전 검증용 엔드포인트
+apiVersion: v1
+kind: Service
+metadata:
+  name: notiflex-api-preview
+  namespace: notiflex
+spec:
+  selector:
+    app: notiflex-api
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

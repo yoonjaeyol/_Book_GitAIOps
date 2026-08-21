@@ -1,0 +1,54 @@
+# ch5.3 Blue/Green: Deployment → Argo Rollouts Rollout 전환
+# - activeService(notiflex-api): 현재 트래픽 대상. 컨트롤러가 selector에
+#   rollouts-pod-template-hash를 박아 특정 ReplicaSet만 연결
+# - previewService(notiflex-api-preview): 새 버전 검증용. promote 전까지 트래픽 없음
+# - autoPromotionSeconds: 30 — 새 RS가 ready된 후 30초 관찰 시간을 준 뒤
+#   active selector를 새 ReplicaSet으로 자동 전환
+#
+# 주의:
+# 1. k8s/smb/deployment.yaml은 삭제됨 (동시 존재 시 ArgoCD가 양쪽 모두 배포)
+# 2. Service selector는 Rollouts 컨트롤러가 관리 — ArgoCD 앱에
+#    ignoreDifferences(spec.selector) 등록 필수
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: notiflex-api
+  namespace: notiflex
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notiflex-api
+  template:
+    metadata:
+      labels:
+        app: notiflex-api
+    spec:
+      containers:
+      - name: notiflex-api
+        image: firewood2002/notiflex-api:sha-cc3f896
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+  strategy:
+    blueGreen:
+      activeService: notiflex-api
+      previewService: notiflex-api-preview
+      autoPromotionEnabled: true
+      autoPromotionSeconds: 30

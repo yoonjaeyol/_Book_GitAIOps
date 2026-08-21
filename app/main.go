@@ -9,7 +9,7 @@ import (
 )
 
 var counter int64
-var version = "v0.1.3"
+var version = "v0.2.0"
 
 func main() {
 	podName := os.Getenv("POD_NAME")
