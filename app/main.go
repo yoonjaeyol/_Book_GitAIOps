@@ -9,7 +9,8 @@ import (
 )
 
 var counter int64
-var version = "v0.2.1"
+var version = "v0.2.2"
+var healthBroken = true // ch5.3 안전 드릴: 깨진 버전 (readiness/liveness 실패 → active 승격 불가)
 
 func main() {
 	podName := os.Getenv("POD_NAME")
@@ -19,6 +20,11 @@ func main() {
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if healthBroken {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprint(w, `{"status":"broken"}`)
+			return
+		}
 		fmt.Fprint(w, `{"status":"ok"}`)
 	})
 
