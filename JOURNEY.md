@@ -20,7 +20,7 @@
 | ch4 | 4.3 로그 수집 | ✅ | 2026-08-17 | Loki 6.55.0 SingleBinary + Fluent Bit 2.6.0, {namespace="notiflex"} 조회 확인 (k3s에서 재검증 08-19: 2 스트림) |
 | ch4 | 4.4 알림 | ✅ | 2026-08-17 | PrometheusRule PodRestartTooMany, liveness 실패로 firing→Alertmanager active 확인 (k3s에서 재검증 08-19: firing 2건→active) |
 | ch5 | 5.2 트래픽 관리 | ✅ | 2026-08-21 | Gateway API v1.6.1(experimental) + Traefik 3.7 + MetalLB L2 (VIP 10.10.20.100). Gateway Programmed=True, HTTPRoute Accepted/ResolvedRefs, ArgoCD notiflex-infra Synced/Healthy, VIP·NodePort(32639)로 /health·/version 실측 통과 (08-21 검증) |
-| ch5 | 5.3 무중단 배포 | ⬜ | | |
+| ch5 | 5.3 무중단 배포 | ✅ | 2026-08-21 | Argo Rollouts v1.9.1 Blue/Green (active=notiflex-api, preview=notiflex-api-preview, autoPromotion 30s). Deployment→Rollout 전환, CI sed 대상→rollout.yaml. 실측: v0.2.1 promote 대기 30s→active 전환 (active selector는 Blue 그대로→promote 시점 1회 전환), **깨진 v0.2.2(/health 503) 승격 차단 — active는 계속 v0.2.1 서빙·/health 200, 사용자에게 에러 0회**, 정상 v0.2.2 승격 확인 (08-21) |
 | ch6 | 6.1 캐시 | ⬜ | | |
 | ch6 | 6.2 시크릿 관리 | ⬜ | | |
 | ch6 | 6.3 Canary 전환 | ⬜ | | |
@@ -54,12 +54,13 @@
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | golang:1.25-alpine |
-| Notiflex 이미지 | firewood2002/notiflex-api:sha-cc3f896 | ch2.6 v0.1.0 → ch3.3 v0.1.1 → ch3.4 CI SHA 태그 |
+| Notiflex 이미지 | firewood2002/notiflex-api:sha-28c3d73 (v0.2.2) | ch2.6 v0.1.0 → ch3.3 v0.1.1 → ch3.4 CI SHA 태그 → ch5.3 v0.2.x Blue/Green 실측 |
 | k3s | v1.34.10+k3s1 | 2026-08-19 kind(v0.21.0) → k3s 전환 (내장 containerd 2.2.5) |
 | Kubernetes | v1.34.10 | k3s v1.34 라인 (flannel 10.42.0.0/16) |
 | MetalLB | 0.16.1 (frr-k8s 0.0.25) | k8s/infra (ch5 대비), pool 10.10.20.100-140, L2 br0 |
 | Traefik | v3.7.10 | GatewayController (k8s/infra), web=80/websecure=443 (NET_BIND_SERVICE) |
 | Gateway API | v1.6.1 (experimental) | CRD (k8s/infra) — v1.2.1(standard)에서 v1.6.1로 승격: Traefik 3.7이 TLSRoute/BackendTLSPolicy를 v1으로 watch |
+| Argo Rollouts | v1.9.1 | ch5.3 Blue/Green — ns argo-rollouts, kubectl 플러그인 v1.9.1 (로컬 ~/.local/bin), 컨트롤러가 Service selector에 rollouts-pod-template-hash 주입 |
 | ArgoCD | v3.5.1 | ch3.2 설치 (stable manifest, NetworkPolicy 제거) |
 | kube-prometheus-stack | 88.3.0 (Prometheus 3.13.2, Grafana 13.1.3) | ch4.2 설치 (monitoring ns, 100m/256Mi 경량) |
 | Loki | 3.6.7 (chart 6.55.0, SingleBinary) | ch4.3 설치 (filesystem, RF=1, auth off) |
@@ -98,4 +99,7 @@
 | ch5.2 (k3s) | Gateway listener "no matching entryPoint for port 80" | traefik web entrypoint가 :8000(매니페스트)인데 Gateway가 port 80 — web=80/websecure=443로 통일, non-root가 80/443 바인딩에 `NET_BIND_SERVICE` 추가 |
 | ch5.2 (k3s) | VIP(10.10.20.100) 외부 flap/타임아웃, /32가 br0에 안 걸림 | **MetalLB L2 speaker가 NET_RAW만 있고 NET_ADMIN 없음** — VIP를 bridge에 secondary로 올리는 netlink 작업 거부. speaker에 NET_ADMIN 추가. 추가: bridge(br0) 환경 특성상 /32가 간헐적으로만 걸림, 외부 안정 접근은 NodePort(32639)로. 노드 `rp_filter` 2→0(MetalLB L2 필요, /etc/sysctl.d/90-metallb-l2.conf) |
 | ch5.2 (k3s) | syncOptions에 `ServerSideApply=true`를 넣었는데도 SyncError가 그대로 남음 | ArgoCD는 **실패한 sync를 동일 revision으로 자동 재시도하지 않는다** — spec을 바꿔 generation이 올라가도(471→479) 재실행되지 않음. 수동 sync는 `spec.operation`이 아니라 **top-level `operation`** 필드를 patch해야 걸린다 (`spec.operation`은 v3.5.1 CRD에서 unknown field) |
-| ch5.2 (k3s) | SSA 적용 후 httproutes CRD `forbidden: ValidatingAdmissionPolicy 'safe-upgrades' ... experimental on top of standard` | SSA로 annotation 262144바이트 한도는 해소됐지만(SSA는 `last-applied-configuration`을 쓰지 않음) 다음 벽이 드러남 — live httproutes만 **v1.2.1 standard** 잔존(나머지 12개 CRD는 v1.6.1 experimental 승격 완료)이라 v1.6 번들이 함께 설치하는 `safe-upgrades` VAP가 standard→experimental 전환을 차단. **일회성 마이그레이션**: VAPBinding 임시 삭제 → httproutes를 SSA(field-manager `argocd-controller`)로 experimental v1.6.1 적용 → 잔존 193KB last-applied annotation 제거 → ArgoCD sync가 VAPBinding을 Git에서 복원. 이후엔 `oldObject.channel == 'experimental'`이라 VAP를 정상 통과 |
+| ch5.2 (k3s) | SSA 적용 후 httproutes CRD `forbidden: ValidatingAdmissionPolicy 'safe-upgrades' ... experimental on top of standard` | SSA로 annotation 262144바이트 한도는 해소됐지만(SSA는 `last-applied-configuration`을 쓰지 않음) 다음 벽이 드러남 — live httproutes만 **v1.2.1 standard** 잔존(나머지 12개는 experimental)이라 v1.6 번들이 함께 설치하는 `safe-upgrades` VAP가 standard→experimental 전환을 차단. **일회성 마이그레이션**: VAPBinding 임시 삭제 → httproutes를 SSA(field-manager `argocd-controller`)로 experimental v1.6.1 적용 → 잔존 193KB last-applied annotation 제거 → ArgoCD sync가 VAPBinding을 Git에서 복원. 이후엔 `oldObject.channel == 'experimental'`이라 VAP를 정상 통과 |
+| ch5.3 | ArgoCD `ignoreDifferences` patch 시 `jsonPointPaths`를 썼더니 `spec.selector` 값만 남아 `kind`만 남음 | ArgoCD v3.5.1의 `ResourceIgnoreDifferences`는 필드명이 **`jsonPointers`** (`jsonPointPaths` 아님) — 잘못 적은 JSONPath 필드는 CRD pruning으로 사라짐. `{"kind":"Service","jsonPointers":["spec.selector"]}`로 재patch해 정상. **필수**: Rollouts 컨트롤러가 active/preview Service의 `spec.selector`에 `rollouts-pod-template-hash`를 직접 주입하므로, `selfHeal:true` ArgoCD가 Git 값으로 되돌리면 promote/rollback이 깨짐. ignoreDifferences 없이는 Blue/Green이 ArgoCD selfHeal과 상시 충돌 |
+| ch5.3 | Blue/Green 전환 시 ArgoCD가 즉시 적용 안 됨 (Synced/Healthy인데 Rollout 안 생김) | push 직후 hard refresh(`argocd.argoproj.io/refresh=hard`)로 강제 → Rollout+preview svc 생성, Deployment/구RS prune. 이후 ArgoCD periodic sync가 자동으로 새 revision 감지(수동 불필요) |
+| ch5.3 (실측) | 깨진 버전(/health 503) 배포 후 active가 승격되는지 걱정 | **승격 안 됨** — 깨진 RS는 readiness(liveness)를 통과 못 해 Ready 0, Rollouts `Progressing`으로 승격 대기. active service selector는 계속 이전 stable(v0.2.1)을 가리켜 **라이브 /version=v0.2.1·/health 200 유지, 사용자에게 에러 0회**. 정상 버전 배포 후 30s autoPromotion으로 승격 → v0.2.2 서빙. Rolling 대비 "깨진 Pod이 트래픽을 받는 찰나"가 없음 |
