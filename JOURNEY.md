@@ -19,7 +19,7 @@
 | ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-08-17 | kube-prometheus-stack 88.3.0, Notiflex 대시보드 4패널 (k3s에서 재검증 08-19: target 13, admin 200) |
 | ch4 | 4.3 로그 수집 | ✅ | 2026-08-17 | Loki 6.55.0 SingleBinary + Fluent Bit 2.6.0, {namespace="notiflex"} 조회 확인 (k3s에서 재검증 08-19: 2 스트림) |
 | ch4 | 4.4 알림 | ✅ | 2026-08-17 | PrometheusRule PodRestartTooMany, liveness 실패로 firing→Alertmanager active 확인 (k3s에서 재검증 08-19: firing 2건→active) |
-| ch5 | 5.2 트래픽 관리 | ⬜ | | |
+| ch5 | 5.2 트래픽 관리 | ✅ | 2026-08-21 | Gateway API v1.6.1(experimental) + Traefik 3.7 + MetalLB L2 (VIP 10.10.20.100). Gateway Programmed=True, HTTPRoute Accepted/ResolvedRefs, ArgoCD notiflex-infra Synced/Healthy, VIP·NodePort(32639)로 /health·/version 실측 통과 (08-21 검증) |
 | ch5 | 5.3 무중단 배포 | ⬜ | | |
 | ch6 | 6.1 캐시 | ⬜ | | |
 | ch6 | 6.2 시크릿 관리 | ⬜ | | |
